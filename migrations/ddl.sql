@@ -113,3 +113,28 @@ COMMENT ON COLUMN payments.card_number IS 'Номер карты';
 COMMENT ON COLUMN payments.card_expiry IS 'Срок действия карты';
 COMMENT ON COLUMN payments.card_cvc IS 'CVC';
 
+-- Создание таблицы для логирования добавления рейсов
+CREATE TABLE flight_logs (
+    log_id SERIAL PRIMARY KEY,
+    flight_id INT NOT NULL,
+    action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    action VARCHAR(50) NOT NULL,
+    FOREIGN KEY (flight_id) REFERENCES flights(flight_id)
+);
+
+
+-- Функция для логирования добавления рейсов
+CREATE OR REPLACE FUNCTION log_flight_insertion() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO flight_logs (flight_id, action, action_time)
+    VALUES (NEW.flight_id, 'Flight Added', CURRENT_TIMESTAMP);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для записи в журнал при добавлении рейса
+CREATE TRIGGER flight_insert_trigger
+AFTER INSERT ON flights
+FOR EACH ROW
+EXECUTE FUNCTION log_flight_insertion();
